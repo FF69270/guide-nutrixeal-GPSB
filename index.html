@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nutrixeal - Guide Pharmacie Interactif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --font-sans: 'Inter', sans-serif;
+            --color-background: #f0f9ff; /* sky-50 */
+            --color-text-dark: #1e293b; /* slate-800 */
+            --color-text-muted: #64748b; /* slate-500 */
+            --color-primary: #0284c7; /* sky-600 */
+            --color-primary-light: #0ea5e9; /* sky-500 */
+            --color-accent-green: #10b981; /* emerald-500 */
+            --color-accent-red: #ef4444; /* red-500 */
+            --color-card-bg: #ffffff;
+            --color-border: #e2e8f0; /* slate-200 */
+            --color-header-gradient-start: #0ea5e9; /* sky-500 */
+            --color-header-gradient-end: #0284c7; /* sky-600 */
+        }
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--color-background);
+            color: var(--color-text-dark);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .header-gradient {
+            background-image: linear-gradient(to right, var(--color-header-gradient-start), var(--color-header-gradient-end));
+        }
+        .control-panel {
+            background-color: var(--color-card-bg);
+            border-bottom: 4px solid var(--color-primary-light);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .product-card {
+            background-color: var(--color-card-bg);
+            border-radius: 0.75rem; /* rounded-lg */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            border: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative; /* Pour positionner l'icône de catégorie */
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        .product-card-title {
+            font-weight: 700;
+            color: var(--color-primary);
+            font-size: 1.25rem; /* text-xl */
+            margin-bottom: 0.5rem;
+            padding-right: 2.5rem; /* Espace pour l'icône de catégorie */
+        }
+        .product-card-ean {
+            font-size: 0.875rem; /* text-sm */
+            color: var(--color-text-muted);
+            margin-bottom: 0.5rem;
+        }
+        .product-card-indication {
+            font-size: 1rem; /* text-base */
+            color: var(--color-text-dark);
+            flex-grow: 1; /* Permet à l'indication de prendre l'espace restant */
+        }
+        .category-icon {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            color: var(--color-primary-light);
+            line-height: 1;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: var(--color-card-bg);
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 2rem;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            position: relative; /* Pour le bouton de fermeture */
+        }
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .modal-close-button {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--color-text-muted);
+            transition: color 0.2s ease-in-out;
+        }
+        .modal-close-button:hover {
+            color: var(--color-text-dark);
+        }
+        .modal-title {
+            font-size: 1.75rem; /* text-3xl */
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--color-primary-light);
+            padding-bottom: 0.75rem;
+        }
+        .modal-detail-item {
+            margin-bottom: 1rem;
+        }
+        .modal-detail-item strong {
+            display: flex;
+            align-items: center;
+            font-size: 1.125rem; /* text-lg */
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+        }
+        .modal-detail-item p {
+            font-size: 1rem;
+            color: var(--color-text-dark);
+            padding-left: 2rem; /* Indentation pour le texte */
+        }
+        .icon-lightbulb { color: var(--color-accent-green); margin-right: 0.5rem; }
+        .icon-info { color: var(--color-primary-light); margin-right: 0.5rem; }
+        .icon-warning { color: var(--color-accent-red); margin-right: 0.5rem; }
+        .icon-books { color: var(--color-text-muted); margin-right: 0.5rem; }
+        .scientific-rating {
+            color: #FFD700; /* Gold color for stars */
+            font-size: 1.2em;
+            margin-left: 0.5rem;
+            cursor: help; /* Indique que c'est interactif */
+            position: relative; /* Pour le positionnement du tooltip */
+        }
+        /* Custom Tooltip styles */
+        .custom-tooltip {
+            position: fixed; /* Changed to fixed for better positioning relative to viewport */
+            background-color: var(--color-primary); /* Couleur de fond du tooltip */
+            color: white;
+            padding: 0.75rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-family: var(--font-sans); /* Police cohérente */
+            font-size: 0.875rem; /* text-sm */
+            line-height: 1.4;
+            max-width: 250px;
+            text-align: left;
+            z-index: 1001; /* Au-dessus du modal */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, transform 0.2s ease-in-out;
+            transform: translateY(10px); /* Pour l'effet d'apparition */
+            pointer-events: none; /* Permet de cliquer à travers le tooltip */
+        }
+        .custom-tooltip.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .custom-tooltip::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 8px solid var(--color-primary); /* Couleur de la flèche */
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .no-results-message {
+            background-color: var(--color-card-bg);
+            padding: 40px;
+            border-radius: 0.75rem;
+            text-align: center;
+            color: var(--color-text-muted);
+            font-size: 1.125rem; /* text-lg */
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        /* Scrollbar styling for modal */
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .modal-content::-webkit-scrollbar-track {
+            background: #e0f2fe; /* sky-100 */
+            border-radius: 4px;
+        }
+        .modal-content::-webkit-scrollbar-thumb {
+            background: var(--color-primary-light);
+            border-radius: 4px;
+        }
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: var(--color-primary);
+        }
+    </style>
+     <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8 header-gradient text-white p-8 rounded-2xl shadow-xl">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-3">🌿 Guide Produit Nutrixeal 💊</h1>
+            <p class="mt-2 text-xl font-light opacity-90 max-w-3xl mx-auto">
+                Votre outil interactif pour une information rapide et claire à la Grande Pharmacie Saint Bonnet.
+            </p>
+            <div class="mt-6 p-3 bg-white bg-opacity-20 rounded-lg inline-block text-sm font-medium">
+                ⚠️ Cette analyse est une synthèse et ne remplace pas l'avis d'un professionnel de santé.
+            </div>
+        </header>
+
+        <div class="control-panel p-6 rounded-2xl mb-8 sticky top-0 z-20">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                <div class="md:col-span-2 relative">
+                    <label for="search-input" class="block text-sm font-semibold text-slate-700 mb-2">Rechercher un produit, une indication ou un code EAN</label>
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="Ex: immunité, magnésium, 3760191463370..." class="w-full pl-10 pr-3 py-3 border border-sky-300 rounded-lg focus:ring-4 focus:ring-sky-200 focus:border-sky-500 transition duration-200 ease-in-out shadow-sm">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sky-500 text-lg">🔍</span>
+                    </div>
+                </div>
+                <div>
+                    <label for="category-filter" class="block text-sm font-semibold text-slate-700 mb-2">Filtrer par catégorie</label>
+                    <div class="relative">
+                        <select id="category-filter" class="w-full pl-3 pr-10 py-3 border border-sky-300 rounded-lg focus:ring-4 focus:ring-sky-200 focus:border-sky-500 transition duration-200 ease-in-out bg-white shadow-sm appearance-none">
+                            <option value="all">Toutes les catégories</option>
+                        </select>
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sky-500 pointer-events-none">▼</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <main id="product-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Les cartes de produits seront générées dynamiquement par JavaScript ici -->
+        </main>
+
+        <div id="no-results" class="no-results-message hidden">
+            <p class="font-semibold text-xl mb-2">🔍 Aucun produit ne correspond à votre recherche.</p>
+            <p class="text-base">Vérifiez l'orthographe ou essayez de modifier vos filtres.</p>
+        </div>
+
+        <footer class="text-center mt-10 text-xs text-slate-600">
+            <p class="mb-1">
+                <strong>Sources d'information :</strong> Données compilées à partir du site Nutrixeal.fr, et synthétisées avec la littérature scientifique disponible sur PubMed, le NCCIH et Wiley Online Library (eCAM).
+            </p>
+            <p>
+                Les informations de ce tableau sont fournies à titre indicatif et ne sauraient engager la responsabilité de son auteur. Dernière mise à jour des données : Juillet 2025.
+            </p>
+        </footer>
+    </div>
+
+    <!-- Fenêtre modale pour les détails du produit -->
+    <div id="product-modal-overlay" class="modal-overlay">
+        <div id="modal-content" class="modal-content">
+            <button id="modal-close-button" class="modal-close-button">✖</button>
+            <h2 id="modal-product-name" class="modal-title"></h2>
+            <div class="modal-detail-item">
+                <strong class="text-slate-700"><span class="icon-info">🏷️</span> Code EAN:</strong>
+                <p id="modal-product-ean" class="text-slate-700"></p>
+            </div>
+            <div class="modal-detail-item">
+                <strong class="text-sky-600"><span class="icon-lightbulb">💡</span> Indication Principale:</strong>
+                <p id="modal-product-indication"></p>
+            </div>
+            <div class="modal-detail-item">
+                <strong class="text-slate-600"><span class="icon-books">📋</span> Composition Exacte:</strong>
+                <p id="modal-product-composition"></p>
+            </div>
+            <div class="modal-detail-item">
+                <strong class="text-sky-600"><span class="icon-lightbulb">🔬</span> Mécanisme d'Action des Composants:</strong>
+                <p id="modal-product-mechanism"></p>
+            </div>
+            <div class="modal-detail-item">
+                <strong class="text-emerald-600"><span class="icon-info">ℹ️</span> Effets Secondaires Fréquents:</strong>
+                <p id="modal-product-side-effects"></p>
+            </div>
+            <div class="modal-detail-item">
+                <strong class="text-red-600"><span class="icon-warning">⚠️</span> Contre-indications:</strong>
+                <p id="modal-product-contraindications"></p>
+            </div>
+            <div class="modal-detail-item">
+                <strong class="text-slate-600"><span class="icon-books">📚</span> Sources d'Information:</strong>
+                <p class="text-slate-600">
+                    Les informations sont compilées à partir du site Nutrixeal.fr, et synthétisées avec la littérature scientifique disponible sur PubMed, le National Center for Complementary and Integrative Health (NCCIH) et Evidence-Based Complementary and Alternative Medicine (eCAM).
+                    <br>
+                    <span class="font-semibold">Pertinence scientifique :</span> <span id="modal-scientific-relevance" class="scientific-rating"></span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Tooltip HTML -->
+    <div id="scientific-tooltip" class="custom-tooltip hidden"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const productData = [
+                {
+                    name: "Hyaluroforce®",
+                    ean: "3760191461956",
+                    category: "Articulations & Peau",
+                    indication: "Soutien de la mobilité articulaire, hydratation et beauté de la peau.",
+                    compositionDetails: "Pour 4 gélules : Collagène marin hydrolysé (1200 mg), Acide hyaluronique (240 mg), Chondroïtine marine (480 mg), Glycine (200 mg), Vitamine C (160 mg).",
+                    mechanism: "Hyaluroforce® agit par une synergie de ses composants. Le collagène et l'acide hyaluronique soutiennent la structure et l'hydratation des tissus. La chondroïtine maintient le cartilage, la glycine est essentielle à la synthèse du collagène, et la vitamine C est un cofacteur clé et antioxydant.",
+                    sideEffects: "Rares troubles gastro-intestinaux légers (nausées, maux d'estomac).",
+                    contraindications: "Hypersensibilité connue. Prudence chez les femmes enceintes ou allaitantes (manque de données).",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Sulforegul® Femmes",
+                    ean: "N/A",
+                    category: "Équilibre Féminin",
+                    indication: "Équilibre hormonal féminin, confort prémenstruel et ménopause.",
+                    compositionDetails: "Pour 6 comprimés : Extrait de brocolis Sulfodyne (600 mg, dont 30 mg sulforaphane), Extrait de pin maritime Pycnogenol (60 mg), Extrait de fleurs d'hibiscus (540 mg), Vitamine B6 (0,15 mg).",
+                    mechanism: "Sulforegul® Femmes agit sur l'équilibre hormonal et la détoxification. Le sulforaphane active la détoxification des œstrogènes. Pycnogenol® offre un soutien antioxydant et vasculaire. L'hibiscus contribue à la détoxification, et la vitamine B6 est essentielle pour le métabolisme hormonal et nerveux.",
+                    sideEffects: "Légers troubles digestifs (ballonnements, nausées) peuvent survenir. Des réactions cutanées sont rares.",
+                    contraindications: "Grossesse, allaitement, antécédents de cancers hormonodépendants sans avis médical strict. Ne pas associer avec des traitements hormonaux sans consultation.",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Sulforegul® Hommes",
+                    ean: "N/A",
+                    category: "Santé Masculine",
+                    indication: "Soutien de la prostate et équilibre hormonal masculin.",
+                    compositionDetails: "Pour 3 comprimés : Extrait de brocolis Sulfodyne (600 mg, dont 30 mg sulforaphane), Extrait de grenade (150 mg, dont 30% Punicalagine), Lycopène (3 mg), Vitamine B6 (0,75 mg).",
+                    mechanism: "Sulforegul® Hommes cible la santé prostatique et l'équilibre hormonal. Le sulforaphane et l'extrait de grenade (punicalagine) agissent comme antioxydants et anti-inflammatoires. Le lycopène protège les cellules prostatiques. La vitamine B6 soutient la régulation hormonale et le système nerveux.",
+                    sideEffects: "Généralement bien toléré. Rares troubles digestifs légers.",
+                    contraindications: "Hypersensibilité connue. Prudence en cas de traitement pour des troubles de la prostate, consulter un médecin.",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "CycloRegul®",
+                    ean: "3760191464391",
+                    category: "Équilibre Féminin",
+                    indication: "Régularité du cycle menstruel, confort prémenstruel.",
+                    compositionDetails: "Pour 1 gélule : Extrait de shatavari (225 mg), Extrait d'igname mexicaine (125 mg), Extrait d'alchémille (70 mg), Extrait d'onagre (50 mg), Extrait de gattilier (20 mg), Vitamine B6 (0,2 mg).",
+                    mechanism: "CycloRegul® agit sur le cycle menstruel. Shatavari et igname mexicaine sont des phytoestrogènes. L'alchémille et l'onagre (GLA) ont des effets anti-inflammatoires. Le gattilier régule la prolactine, normalisant le cycle. La vitamine B6 soutient les neurotransmetteurs et l'équilibre hormonal.",
+                    sideEffects: "Le gattilier peut causer des maux de tête, des troubles digestifs ou des réactions cutanées chez certaines femmes. La Vitamine B6 à très forte dose peut être neurotoxique (non pertinent aux doses recommandées).",
+                    contraindications: "Grossesse, allaitement, contraception hormonale sans avis médical. Cancers hormonodépendants.",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Gattilier 530 mg",
+                    ean: "3760191461697",
+                    category: "Équilibre Féminin",
+                    indication: "Syndrome prémenstruel (SPM), irrégularités du cycle, douleurs mammaires cycliques.",
+                    compositionDetails: "Pour 1 gélule : Extrait de graines de gattilier (530 mg, standardisé à 0,6% d'agnuside).",
+                    mechanism: "Le gattilier agit en supprimant la libération de prolactine par l'hypophyse. Ses composés actifs réduisent la sécrétion excessive de prolactine, ce qui normalise le rapport œstrogène/progestérone et régularise le cycle menstruel. Il peut aussi atténuer les bouffées de chaleur et les perturbations psychologiques liées à la ménopause.",
+                    sideEffects: "Peut causer des maux de tête, vertiges, troubles digestifs (nausées, diarrhée) ou des réactions cutanées (acné, éruption).",
+                    contraindications: "Grossesse, allaitement (peut affecter la lactation), cancers hormonodépendants (sein, utérus). Ne pas associer avec des traitements hormonaux ou la contraception hormonale sans avis médical.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Achillée millefeuille 500mg",
+                    ean: "3760191462557",
+                    category: "Digestion & Détox",
+                    indication: "Confort digestif (antispasmodique, carminatif), confort menstruel (douleurs).",
+                    compositionDetails: "Pour 1 gélule : Extrait concentré 4:1 de sommités fleuries d'achillée millefeuille (500 mg, équivalent à 2000 mg de poudre simple).",
+                    mechanism: "L'Achillée millefeuille agit par ses propriétés antispasmodiques et anti-inflammatoires. Ses composés actifs (flavonoïdes, alcaloïdes) exercent des effets sur les muscles lisses de l'intestin et de l'utérus, soulageant les crampes et spasmes. Elle réduit aussi les gaz et ballonnements.",
+                    sideEffects: "Rare, peut causer des réactions allergiques chez les personnes sensibles aux plantes de la famille des Astéracées (marguerite, camomille, pissenlit).",
+                    contraindications: "Allergie connue aux Astéracées. Grossesse et allaitement (par précaution).",
+                    scientificRelevance: 1
+                },
+                {
+                    name: "Tribulus terrestris Premium standardisé à 60% de furostanol saponines, 400 mg par gélule",
+                    ean: "N/A",
+                    category: "Santé Masculine",
+                    indication: "Soutien de la libido et de la vitalité sexuelle, aide à la performance physique.",
+                    compositionDetails: "Pour 1 gélule : Extrait de Tribulus terrestris (400 mg, standardisé à 60% de furostanol saponines).",
+                    mechanism: "Le Tribulus terrestris agit sur la libido et la vitalité sexuelle. Ses furostanol saponines pourraient stimuler l'hormone lutéinisante (LH), potentiellement augmentant la testostérone (preuves contradictoires chez l'humain). Il peut aussi améliorer la fonction érectile et la libido par d'autres mécanismes, comme l'augmentation de l'oxyde nitrique.",
+                    sideEffects: "Rares troubles digestifs (maux d'estomac, diarrhée) ou nervosité. Peut affecter le sommeil chez certains.",
+                    contraindications: "Cancer de la prostate ou autres cancers hormono-dépendants. Grossesse, allaitement. Ne pas utiliser chez l'enfant. Prudence en cas de troubles cardiaques ou rénaux.",
+                    scientificRelevance: 1
+                },
+                {
+                    name: "Chrome picolinate 200 µg",
+                    ean: "3760191465152",
+                    category: "Santé Métabolique",
+                    indication: "Maintien d'une glycémie normale, métabolisme des macronutriments.",
+                    compositionDetails: "Pour 1 comprimé : Chrome élémentaire (200 µg, sous forme de picolinate de chrome).",
+                    mechanism: "Le Chrome picolinate agit principalement sur le métabolisme du glucose et des macronutriments. Le chrome est un oligo-élément essentiel qui agit comme cofacteur de l'insuline. Il amplifie les signaux de l'insuline, améliorant la sensibilité des cellules et l'absorption du glucose. Le picolinate est une forme bien absorbée.",
+                    sideEffects: "Rare et généralement léger à cette dose. Peut inclure des maux d'estomac ou des nausées.",
+                    contraindications: "Insuffisance rénale ou hépatique sévère. Prudence chez les diabétiques sous traitement (risque d'hypoglycémie), nécessite un suivi médical.",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Lipidactif®",
+                    ean: "3760191464209",
+                    category: "Santé Métabolique",
+                    indication: "Maintien d'une cholestérolémie normale.",
+                    compositionDetails: "Pour 2 gélules : Extrait d'ail noir ABG25+® (250 mg), Oméga-3 végétaliens AvailOm® Algae (500 mg, dont 250 mg DHA et 125 mg EPA), Vitamine E (12 mg).",
+                    mechanism: "Lipidactif® agit sur la santé cardiovasculaire et le profil lipidique. L'extrait d'ail noir est antioxydant et améliore le profil lipidique. Les oméga-3 réduisent l'inflammation et abaissent les triglycérides. La vitamine E protège les membranes cellulaires de l'oxydation.",
+                    sideEffects: "Goût d'ail (rare), troubles digestifs légers.",
+                    contraindications: "Traitement anticoagulant (avis médical), allergie à l'ail ou aux algues.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "R-alpha lipoate de sodium",
+                    ean: "3760191460515",
+                    category: "Antioxydants",
+                    indication: "Antioxydant universel, soutien du métabolisme du glucose, protection nerveuse.",
+                    compositionDetails: "Pour 1 gélule : R-alpha lipoate de sodium (100 mg).",
+                    mechanism: "Le R-alpha lipoate de sodium est un antioxydant puissant avec des rôles métaboliques et protecteurs. C'est un antioxydant 'universel' (hydro- et liposoluble) qui neutralise les radicaux libres et régénère d'autres antioxydants (glutathion, vitamines C et E). Il est aussi un cofacteur essentiel pour la production d'énergie mitochondriale et peut améliorer la sensibilité à l'insuline.",
+                    sideEffects: "Rarement, troubles digestifs ou réactions cutanées. Peut abaisser la glycémie.",
+                    contraindications: "Prudence chez les diabétiques traités (risque d'hypoglycémie), nécessite un suivi médical. Grossesse et allaitement (par manque de données).",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "HX4 Equilibre",
+                    ean: "3760191463516",
+                    category: "Stress & Sommeil",
+                    indication: "Gestion du stress, équilibre émotionnel, adaptation aux périodes de surcharge.",
+                    compositionDetails: "Pour 1 gélule : L-théanine Isothéanine® (150 mg), GABA (150 mg), Vitamine B6 (0,23 mg).",
+                    mechanism: "HX4 Equilibre agit sur le système nerveux pour favoriser la relaxation et l'équilibre émotionnel. La L-théanine induit un état de relaxation en augmentant les ondes alpha. Le GABA réduit l'excitabilité neuronale, calmant l'activité cérébrale. La vitamine B6 est un cofacteur essentiel pour la synthèse de neurotransmetteurs.",
+                    sideEffects: "Peut causer somnolence ou nervosité chez certains. Troubles digestifs légers.",
+                    contraindications: "Grossesse, allaitement, troubles bipolaires (avis médical). Prudence avec antidépresseurs/anxiolytiques.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Bacopa monnieri (Brahmi)",
+                    ean: "3760191460317",
+                    category: "Cognition & Mémoire",
+                    indication: "Amélioration de la mémoire, de la concentration, des capacités d'apprentissage et réduction du stress cognitif.",
+                    compositionDetails: "Pour 1 gélule : Extrait de Bacopa monnieri (300 mg, standardisé à 50% de bacosides).",
+                    mechanism: "Le Bacopa monnieri améliore la cognition et réduit le stress. Ses bacosides améliorent la transmission synaptique et la communication entre les cellules nerveuses, augmentant la synthèse d'acétylcholine. Ils ont également des propriétés antioxydantes et neuroprotectrices, protégeant les neurones.",
+                    sideEffects: "Troubles digestifs (crampes abdominales, nausées, diarrhée) sont les plus fréquents, surtout à forte dose ou à jeun.",
+                    contraindications: "Prudence avec les traitements thyroïdiens et les bradycardies. Grossesse et allaitement (par manque de données).",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Ixeaboost multi premium",
+                    ean: "3760191463974",
+                    category: "Vitamines & Minéraux",
+                    indication: "Formule multivitaminée complète pour la vitalité générale, réduction de la fatigue, soutien du système immunitaire.",
+                    compositionDetails: "Pour 4 gélules : Vitamines (B1, B2, B3, B5, B6, B8, B9, B12, C, D3, E, K2), Minéraux (Iode, Zinc), Oméga-3 végétaliens (DHA, EPA), Acides aminés (L-lysine, Glycine, NAC, L-carnosine, Glutathion), Antioxydants (Resvératrol, Lutéine, Zéaxanthine, OPC, Pycnogenol®, Myrtille, SOD).",
+                    mechanism: "Ixeaboost Multi Premium agit sur l'énergie, la vitalité et la protection cellulaire. Il fournit un large spectre de vitamines, minéraux, oméga-3, acides aminés et antioxydants, agissant comme cofacteurs essentiels pour le métabolisme énergétique, l'immunité, la santé osseuse et la protection cellulaire.",
+                    sideEffects: "Urine colorée (vitamine B2), rares troubles digestifs légers.",
+                    contraindications: "Hémochromatose (si contient du fer), insuffisance rénale (pour certaines vitamines/minéraux) sans avis médical. Allergie à l'un des composants.",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "IxeaBoost Immunité",
+                    ean: "3760191463370",
+                    category: "Immunité",
+                    indication: "Soutien global du système immunitaire, particulièrement en période de fatigue, de stress ou de changements saisonniers.",
+                    compositionDetails: "Pour 3 gélules : Quercétine CapsuTech® CWD (500 mg), Vitamine C liposomale ZetaGreen® (500 mg), Zinc (10 mg), Vitamine D3 végétale (2000 UI).",
+                    mechanism: "IxeaBoost Immunité renforce les défenses immunitaires. La quercétine est un antioxydant et immunomodulateur. La vitamine C liposomale et la vitamine D3 sont essentielles pour la fonction immunitaire. Le zinc est un oligo-élément fondamental pour le développement et la fonction des cellules immunitaires.",
+                    sideEffects: "À très haute dose, la vitamine C peut causer des troubles digestifs. Un excès de zinc peut interférer avec l'absorption du cuivre.",
+                    contraindications: "Maladies auto-immunes (pour la vitamine D, avis médical requis). Allergie à un des composants.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Ixeaboost Energy 4",
+                    ean: "3760191465466",
+                    category: "Énergie & Vitalité",
+                    indication: "Lutte contre la fatigue physique et mentale, soutien du métabolisme énergétique, amélioration de la concentration.",
+                    compositionDetails: "Pour 2 gélules : Zynamite® (extrait de feuilles de manguier, 300 mg), Ashwagandha Shoden® (250 mg), Ginseng rouge coréen (200 mg), Rhodiola rosea (100 mg).",
+                    mechanism: "Ixeaboost Energy 4 stimule l'énergie et la concentration sans caféine. Zynamite® est un nootropique. L'Ashwagandha, le Ginseng et la Rhodiola sont des adaptogènes qui modulent la réponse au stress, améliorent la vitalité physique et mentale, et réduisent la fatigue.",
+                    sideEffects: "Le ginseng et le guarana peuvent causer de l'insomnie, de la nervosité, de l'agitation ou une augmentation de la pression artérielle chez les personnes sensibles. Palpitations possibles.",
+                    contraindications: "Hypertension non contrôlée, troubles cardiaques, anxiété sévère, insomnie. Grossesse, allaitement. Personnes sous anticoagulants (Ginseng). Déconseillé aux enfants.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Ixeaboost hemoglobine",
+                    ean: "3760191465503",
+                    category: "Vitamines & Minéraux",
+                    indication: "Soutien à la formation des globules rouges et de l'hémoglobine, lutte contre la fatigue liée à une carence en fer.",
+                    compositionDetails: "Pour 1 gélule : Fer chélaté Ferrochel® (14 mg), Vitamine B6 (1,4 mg), Vitamine B9 Quatrefolic® (200 µg), Vitamine B12 (2,5 µg), Vitamine C Quali-C® (80 mg).",
+                    mechanism: "Ixeaboost Hémoglobine soutient la formation des globules rouges et de l'hémoglobine. Le fer chélaté est un composant central de l'hémoglobine. La vitamine C accroît son absorption. Les vitamines B6, B9 et B12 sont des cofacteurs essentiels pour la synthèse de l'ADN et la production des globules rouges.",
+                    sideEffects: "Moins de troubles digestifs (constipation, nausées) que les sels de fer classiques. Coloration noire des selles (normal et sans danger).",
+                    contraindications: "Hémochromatose (surcharge en fer) ou autres maladies de surcharge martiale. Allergie à un des composants.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Omegartic® UltraQ10",
+                    ean: "3760191463745",
+                    category: "Santé Cardiovasculaire",
+                    indication: "Santé cardiovasculaire, soutien de la fonction cardiaque, production d'énergie cellulaire.",
+                    compositionDetails: "Pour 4 gélules : Oméga-3 EPAX®-XO® (760 mg, dont 380 mg EPA et 256 mg DHA), Ubiquinol Kaneka® (200 mg), Vitamine E (24 mg).",
+                    mechanism: "Omegartic® UltraQ10 soutient la santé cardiovasculaire et la production d'énergie cellulaire. Les oméga-3 réduisent les triglycérides et l'inflammation. L'ubiquinol Kaneka® est essentiel à la production d'ATP dans les mitochondries et est un puissant antioxydant. La vitamine E protège les acides gras insaturés de l'oxydation.",
+                    sideEffects: "Goût de poisson (si remontées), troubles digestifs légers. Peut fluidifier légèrement le sang.",
+                    contraindications: "Traitement anticoagulant ou antiplaquettaire (avis médical requis). Allergie aux poissons.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Omegartic synergie",
+                    ean: "3760191463844",
+                    category: "Santé Cardiovasculaire",
+                    indication: "Synergie d'acides gras essentiels pour l'équilibre cardiovasculaire, cérébral et cutané.",
+                    compositionDetails: "Pour 4 gélules : Huiles (poisson EPAX®-XO®, krill SuperbaKrill®, Calanus Zooca™) (2200 mg), Oméga-3 totaux (1240 mg), Phospholipides (88 mg), Phosphatidylcholine (80 mg), Choline (12 mg), Astaxanthine (140 µg).",
+                    mechanism: "Omegartic synergie offre un apport diversifié d'oméga-3. Les huiles de poissons, krill et Calanus fournissent des oméga-3 sous des formes variées pour une assimilation optimisée. L'astaxanthine, les phospholipides et la choline améliorent la biodisponibilité et offrent une protection antioxydante.",
+                    sideEffects: "Rares troubles digestifs légers. Peut fluidifier légèrement le sang.",
+                    contraindications: "Traitement anticoagulant ou antiplaquettaire (avis médical requis). Allergie aux poissons.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Ixeaderm",
+                    ean: "3760191469716",
+                    category: "Articulations & Peau",
+                    indication: "Beauté de la peau, des cheveux et des ongles, hydratation et élasticité cutanée.",
+                    compositionDetails: "Pour 3 comprimés : Collagène Verisol® (2500 mg), Peptides d'élastine (500 mg), Acide hyaluronique ExceptionHYAL® Star (120 mg), Extrait de pépins de raisin (200 mg).",
+                    mechanism: "Ixeaderm® agit sur la beauté de la peau, des cheveux et des ongles. Le collagène Verisol® et les peptides d'élastine stimulent la production de collagène et d'élastine. L'acide hyaluronique hydrate la peau. L'extrait de pépins de raisin est un puissant antioxydant protégeant les fibres de collagène et d'élastine.",
+                    sideEffects: "Rare. Peut inclure des troubles digestifs légers ou des réactions allergiques (si allergie au poisson pour le collagène marin).",
+                    contraindications: "Allergie connue au poisson ou à l'un des composants.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Goodnight",
+                    ean: "3760191461918",
+                    category: "Stress & Sommeil",
+                    indication: "Aide à la relaxation et à l'endormissement, amélioration de la qualité du sommeil.",
+                    compositionDetails: "Pour 1 gélule : L-théanine Isothéanine® (120 mg), L-tryptophane (100 mg), Extrait de passiflore (90 mg), Extrait d'Eschscholzia californica (90 mg), Mélatonine végétalienne (0,90 mg).",
+                    mechanism: "GoodNight® favorise la relaxation et le sommeil. La L-théanine et le L-tryptophane modulent les neurotransmetteurs et sont précurseurs de la mélatonine. La mélatonine végétalienne régule le cycle veille-sommeil. La passiflore et l'Eschscholzia californica sont des plantes aux propriétés anxiolytiques et sédatives douces.",
+                    sideEffects: "Somnolence diurne si la dose est trop élevée ou prise trop tard. Vertiges ou maux de tête possibles. Rares troubles digestifs.",
+                    contraindications: "Maladies auto-immunes, épilepsie, asthme, troubles de l'humeur sévères. Déconseillé aux femmes enceintes/allaitantes. Ne pas conduire ou utiliser de machines après la prise. Interactions avec les anticoagulants, les médicaments contre l'épilepsie et les médicaments sérotoninergiques.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Cerecholine",
+                    ean: "3760191461390",
+                    category: "Cognition & Mémoire",
+                    indication: "Soutien des fonctions cognitives, de la mémoire, de la concentration et de l'apprentissage.",
+                    compositionDetails: "Pour 2 gélules : Citicoline Cognizin® (500 mg), Acétyl-taurinate de magnésium Ata Mg® (200 mg), Vitamine B6 (1,4 mg).",
+                    mechanism: "Cerecholine® soutient les fonctions cognitives. La citicoline Cognizin® est un précurseur d'acétylcholine. L'acétyl-taurinate de magnésium traverse la barrière hémato-encéphalique, crucial pour la plasticité synaptique. La vitamine B6 est un cofacteur essentiel pour la synthèse de neurotransmetteurs, optimisant la fonction cognitive.",
+                    sideEffects: "Rarement : maux de tête, insomnie, brûlures d'estomac, vertiges. Souvent lié à un dosage trop élevé.",
+                    contraindications: "Grossesse, allaitement (par manque de données). Prudence chez les personnes bipolaires.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "HX4 Serenity gélules",
+                    ean: "3760191461949",
+                    category: "Stress & Sommeil",
+                    indication: "Sérénité et relaxation en journée, aide à gérer le stress quotidien sans somnolence excessive.",
+                    compositionDetails: "Pour 2 gélules : Extrait de safran (30 mg, titré à 3,0% de safranal et 7,5% de crocines), L-théanine Isothéanine® (150 mg), GABA (150 mg).",
+                    mechanism: "HX4 Serenity vise l'équilibre émotionnel et la gestion du stress. L'extrait de safran influence les niveaux de neurotransmetteurs. La L-théanine favorise la relaxation en augmentant les ondes alpha. Le GABA réduit l'excitabilité neuronale, calmant l'activité cérébrale et réduisant le stress.",
+                    sideEffects: "Peut causer une légère somnolence chez certaines personnes sensibles. Rares troubles digestifs.",
+                    contraindications: "Grossesse, allaitement (par précaution). Prudence en cas de traitement sédatif ou anxiolytique (avis médical).",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "RSM bio",
+                    ean: "3760191464315",
+                    category: "Antioxydants",
+                    indication: "Protection antioxydante, soutien articulaire, adaptation au stress.",
+                    compositionDetails: "Pour 2 gélules : Extrait de Reishi BIO (300 mg), Extrait de Shiitake BIO (300 mg), Extrait de Maitake BIO (300 mg).",
+                    mechanism: "RSM bio soutient le système immunitaire et l'adaptation au stress grâce aux champignons médicinaux. Le Reishi, Shiitake et Maitake sont des adaptogènes et immunomodulateurs. Leurs polysaccharides et bêta-glucanes activent diverses cellules immunitaires, renforçant la réponse immunitaire et offrant des propriétés anti-inflammatoires et antioxydantes.",
+                    sideEffects: "Rare. La Rhodiola peut causer de l'insomnie si prise le soir. Le MSM peut causer des troubles digestifs légers.",
+                    contraindications: "Trouble bipolaire (pour la Rhodiola, peut exacerber les phases maniaques). Grossesse, allaitement (par précaution).",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Vitaxanthine gélules",
+                    ean: "3760191463547",
+                    category: "Antioxydants",
+                    indication: "Puissante protection antioxydante pour la peau (contre les UV), les yeux, le système cardiovasculaire et immunitaire.",
+                    compositionDetails: "Pour 1 gélule : Astaxanthine naturelle (8 mg), Vitamine E (mélange de tocophérols).",
+                    mechanism: "Vitaxanthine® offre une protection antioxydante puissante. L'astaxanthine naturelle est un caroténoïde unique qui s'intègre dans toute la membrane cellulaire, neutralise les radicaux libres et protège les cellules du stress oxydatif. La vitamine E est un antioxydant liposoluble qui agit en synergie avec l'astaxanthine.",
+                    sideEffects: "Rare. À très forte dose, peut colorer légèrement la peau en orange (inoffensif).",
+                    contraindications: "Grossesse, allaitement (par manque de données). Hypersensibilité à l'astaxanthine ou aux algues.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "ColorStim®",
+                    ean: "3760191461970",
+                    category: "Articulations & Peau",
+                    indication: "Préparation de la peau au soleil, soutien du bronzage, protection cellulaire antioxydante.",
+                    compositionDetails: "Pour 3 gélules : Kératine hydrolysée riche en mélanine (500 mg, dont 5 mg de mélanine).",
+                    mechanism: "ColorStim® agit sur la pigmentation de la peau et des cheveux et offre une protection antioxydante. La kératine hydrolysée riche en mélanine peut être transportée vers les kératinocytes et mélanocytes, contribuant à l'intensité du bronzage et à la couleur naturelle des cheveux. Elle agit aussi comme filtre UV naturel et puissant antioxydant.",
+                    sideEffects: "Surdosage de bêta-carotène peut colorer la peau en orange (caroténodermie).",
+                    contraindications: "Fumeurs (controverse sur le bêta-carotène à haute dose pour les fumeurs). Grossesse, allaitement (par précaution).",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Ixeabase poudre",
+                    ean: "3760191463998",
+                    category: "Équilibre Acido-Basique",
+                    indication: "Soutien de l'équilibre acido-basique de l'organisme, aide à réduire l'acidité métabolique.",
+                    compositionDetails: "Pour 1 dosette (5g) : Citrate de potassium (1200 mg), Citrate de calcium (800 mg), Glycérophosphate de magnésium (500 mg), Citrate de magnésium (500 mg), Glycérophosphate de calcium (500 mg).",
+                    mechanism: "Ixeabase poudre soutient l'équilibre acido-basique et l'apport en minéraux essentiels. Ces minéraux sous formes de sels de citrate et de glycérophosphate sont hautement biodisponibles et alcalinisants. Ils libèrent des ions bicarbonate qui aident à tamponner l'excès d'acidité, contribuant à l'équilibre acido-basique et sont essentiels pour la santé osseuse et musculaire.",
+                    sideEffects: "Rare, troubles digestifs (ballonnements, diarrhée) si mal dilué ou pris à très forte dose.",
+                    contraindications: "Insuffisance rénale sévère (risque d'hyperkaliémie avec le potassium). Hypercalcémie, hypermagnesémie. Ne pas utiliser sans avis médical en cas de pathologie rénale ou cardiaque.",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Pylodetox",
+                    ean: "3760191464582",
+                    category: "Digestion & Détox",
+                    indication: "Soutien de l'équilibre gastrique, notamment en lien avec la présence d'Helicobacter pylori.",
+                    compositionDetails: "Pour 1 gélule : Lactobacillus reuteri inactivé Pylopass® (200 mg), Extrait de feuilles d'olivier (100 mg), Vitamine B8 (0,21 mg), Vitamine C (80 mg).",
+                    mechanism: "Pylodetox cible spécifiquement *Helicobacter pylori* et soutient l'équilibre gastrique. Le Lactobacillus reuteri inactivé (Pylopass®) se lie spécifiquement aux cellules d'*Helicobacter pylori*, facilitant leur élimination. L'extrait de feuilles d'olivier possède des propriétés antimicrobiennes et antioxydantes. Les vitamines B8 et C contribuent au maintien des muqueuses normales et protègent la muqueuse gastrique.",
+                    sideEffects: "Très bien toléré, pas d'effets secondaires notables rapportés aux doses recommandées.",
+                    contraindications: "Aucune contre-indication majeure connue. Hypersensibilité à l'un des composants.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Hydravea",
+                    ean: "3760191463967",
+                    category: "Articulations & Peau",
+                    indication: "Hydratation des muqueuses (yeux secs, bouche sèche, sécheresse intime) et de la peau.",
+                    compositionDetails: "Pour 2 gélules : Huile d'argousier Omegia® (1000 mg, riche en Oméga 3, 6, 7, 9, Vitamines A et E).",
+                    mechanism: "Hydravea agit sur l'hydratation des muqueuses et de la peau. L'huile d'argousier Omegia® est une source exceptionnelle d'oméga 3, 6, 7, 9. L'oméga-7 (acide palmitoléique) est crucial pour l'intégrité et l'hydratation des membranes cellulaires des muqueuses et de la peau. Les Vitamines A et E sont de puissants antioxydants qui protègent les cellules.",
+                    sideEffects: "Rare. Peut causer de légers troubles digestifs chez certaines personnes sensibles.",
+                    contraindications: "Aucune contre-indication majeure connue. Hypersensibilité à l'argousier.",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Ultramag",
+                    ean: "3760191465404",
+                    category: "Énergie & Vitalité",
+                    indication: "Réduction de la fatigue, soutien du système nerveux et musculaire, équilibre électrolytique, gestion du stress.",
+                    compositionDetails: "Pour 4 gélules : Bisglycinate de magnésium Albion® / TRAACS® (3200 mg, soit 320 mg de magnésium élémentaire), Taurine (268 mg), Vitamine B6 (1,9 mg).",
+                    mechanism: "Ultramag soutient l'énergie, le système nerveux et musculaire. Le bisglycinate de magnésium est essentiel pour l'énergie et la fonction nerveuse/musculaire. La taurine agit en synergie avec le magnésium, régulant l'équilibre électrolytique. La vitamine B6 optimise l'assimilation du magnésium et est impliquée dans la synthèse de neurotransmetteurs.",
+                    sideEffects: "Très bonne tolérance digestive comparé à d'autres formes de magnésium (moins d'effets laxatifs).",
+                    contraindications: "Insuffisance rénale sévère (risque d'accumulation de magnésium). Prudence en cas de bradycardie ou de traitement par digitaliques.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Ménosoft",
+                    ean: "3760191468092",
+                    category: "Équilibre Féminin",
+                    indication: "Confort lors de la ménopause (bouffées de chaleur, sueurs nocturnes, irritabilité, troubles du sommeil, douleurs articulaires).",
+                    compositionDetails: "Pour 2 gélules : Extrait de shatavari (200 mg), Extrait d'igname mexicaine (200 mg), Extrait de gattilier (100 mg), Huile d'onagre microencapsulée (100 mg), Vitamine B6 (1,4 mg).",
+                    mechanism: "Ménosoft vise à atténuer les inconforts de la ménopause. Shatavari et igname mexicaine sont des plantes phytoestrogéniques. Le gattilier module la sécrétion de prolactine, influençant l'équilibre hormonal. L'huile d'onagre (GLA) réduit l'inflammation. La vitamine B6 contribue à la régulation hormonale et à la réduction de la fatigue.",
+                    sideEffects: "Troubles digestifs légers. Controverse sur les phytoestrogènes et cancers hormonodépendants.",
+                    contraindications: "Antécédents personnels ou familiaux de cancer hormonodépendant. Grossesse, allaitement. Ne pas associer avec THS sans avis médical.",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Cyclosoft",
+                    ean: "3760191464407",
+                    category: "Équilibre Féminin",
+                    indication: "Confort avant et pendant le cycle menstruel (syndrome prémenstruel, règles douloureuses, irrégularités).",
+                    compositionDetails: "Pour 2 gélules : Extrait d'alchémille (200 mg), Boswellia serrata (100 mg), Quercétine (100 mg), Tétrahydrocurcuminoïdes C3 Reduct® (100 mg), R-alpha lipoate de sodium (100 mg), Astaxanthine (4 mg).",
+                    mechanism: "Cyclosoft cible le confort menstruel et les crampes. L'alchémille offre un soutien traditionnel. Boswellia serrata, quercétine, tétrahydrocurcuminoïdes, R-alpha lipoate et astaxanthine sont de puissants anti-inflammatoires et antioxydants, réduisant le stress oxydatif et l'inflammation.",
+                    sideEffects: "Troubles digestifs légers. Prudence avec les anticoagulants (Boswellia).",
+                    contraindications: "Grossesse, allaitement. Réservé aux femmes adultes.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "L-lysine",
+                    ean: "3760191466395",
+                    category: "Immunité",
+                    indication: "Prévention des poussées d'herpès labial (bouton de fièvre), soutien de la synthèse du collagène.",
+                    compositionDetails: "Pour 1 comprimé : L-lysine (750 mg).",
+                    mechanism: "La L-lysine est un acide aminé essentiel agissant sur la synthèse protéique et la modulation virale. Elle est essentielle pour la synthèse des protéines (enzymes, hormones, anticorps). Dans le contexte de l'herpès, elle entre en compétition avec l'arginine, limitant la réplication du virus de l'herpès simplex (HSV).",
+                    sideEffects: "Rares troubles digestifs à haute dose.",
+                    contraindications: "Insuffisance rénale ou hépatique sévère. Grossesse et allaitement (par précaution).",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Ashwagandha shoden 125mg",
+                    ean: "3760191465121",
+                    category: "Stress & Sommeil",
+                    indication: "Gestion du stress et de l'anxiété, amélioration du sommeil, soutien des performances physiques et mentales (adaptogène).",
+                    compositionDetails: "Pour 1 gélule : Extrait d'Ashwagandha Shoden® (125 mg, standardisé à 35% de withanolides).",
+                    mechanism: "L'Ashwagandha Shoden® agit comme un adaptogène pour la gestion du stress, l'énergie et le sommeil. Ses withanolides modulent l'axe HPA, réduisant le cortisol. Ils favorisent la relaxation, améliorent le sommeil et augmentent la résilience physique et mentale.",
+                    sideEffects: "Rarement, somnolence, troubles digestifs légers. À forte dose, peut être sédatif.",
+                    contraindications: "Grossesse, allaitement. Maladies auto-immunes. Prudence avec les sédatifs, immunosuppresseurs, traitements thyroïdiens (avis médical).",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Physio B12",
+                    ean: "3760191464117",
+                    category: "Vitamines & Minéraux",
+                    indication: "Carences en vitamine B12, soutien du système nerveux, de la formation des globules rouges et du métabolisme énergétique.",
+                    compositionDetails: "Pour 1 comprimé : Vitamine B12 (500 µg, méthylcobalamine et adénosylcobalamine).",
+                    mechanism: "Physio B12 fournit de la vitamine B12 sous des formes hautement biodisponibles pour soutenir les fonctions neurologiques et hématologiques. La vitamine B12 est essentielle pour la synthèse de l'ADN, la formation normale des globules rouges, le bon fonctionnement du système nerveux (synthèse de la myéline) et la réduction de la fatigue. Les formes bioactives sont directement utilisables.",
+                    sideEffects: "Très rare, la vitamine B12 est très sûre même à haute dose.",
+                    contraindications: "Allergie connue au cobalt ou à la cobalamine. Maladie de Leber (atrophie optique héréditaire).",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Zinc 10 mg",
+                    ean: "3760191463141",
+                    category: "Immunité",
+                    indication: "Soutien immunitaire, santé de la peau (acné, cicatrisation), des cheveux et des ongles, fonction cognitive, fertilité.",
+                    compositionDetails: "Pour 1 gélule : Zinc élémentaire (10 mg, sous forme de bisglycinate chélaté Albion® / TRAACS®).",
+                    mechanism: "Le Zinc est un oligo-élément fondamental pour de multiples fonctions corporelles, notamment l'immunité. C'est un cofacteur essentiel pour plus de 300 enzymes. Il est crucial pour le développement et la fonction des cellules immunitaires, la cicatrisation, la synthèse de l'ADN/protéines, la croissance et la fonction cognitive. La forme chélatée assure une excellente absorption et tolérance.",
+                    sideEffects: "À jeun, peut causer des nausées ou des troubles digestiques. À très forte dose et long terme, peut induire une carence en cuivre.",
+                    contraindications: "Aucune contre-indication majeure à cette dose. Prudence en cas de traitement par antibiotiques (tétracyclines, quinolones) ou diurétiques (avis médical).",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Fer chélaté",
+                    ean: "3760191465015",
+                    category: "Énergie & Vitalité",
+                    indication: "Prévention ou correction des carences en fer, lutte contre la fatigue et l'anémie ferriprive.",
+                    compositionDetails: "Pour 1 gélule : Fer élémentaire (14 mg, sous forme de bisglycinate chélaté Ferrochel® Albion® / TRAACS®).",
+                    mechanism: "Le Fer chélaté soutient la production d'hémoglobine et le transport de l'oxygène. C'est un composant central de l'hémoglobine, responsable du transport de l'oxygène. Sa forme chélatée le protège des interactions, offrant une absorption très élevée et une excellente tolérance digestive (moins de constipation).",
+                    sideEffects: "Beaucoup moins de troubles digestifs (constipation, nausées, douleurs abdominales) que les sulfates de fer. Coloration noire des selles (normal et sans danger).",
+                    contraindications: "Hémochromatose (maladie génétique de surcharge en fer) ou autres maladies de surcharge martiale (thalassémie, anémie sidéroblastique). Transfusions sanguines fréquentes.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Tryptophea",
+                    ean: "3760191464452",
+                    category: "Stress & Sommeil",
+                    indication: "Soutien de l'humeur, de la sérénité et aide à l'équilibre du sommeil.",
+                    compositionDetails: "Pour 1 gélule : L-Tryptophane (220 mg).",
+                    mechanism: "Tryptophea agit sur l'humeur et le sommeil en fournissant un précurseur essentiel. Le L-Tryptophane est un acide aminé essentiel et unique précurseur de la sérotonine (régulateur de l'humeur) et de la mélatonine (hormone du sommeil). Il est transporté vers le cerveau et converti pour soutenir la production naturelle de ces composés importants pour l'équilibre émotionnel et le sommeil.",
+                    sideEffects: "Somnolence, vertiges, sécheresse buccale, nausées sont possibles. Peut interagir avec des médicaments.",
+                    contraindications: "Ne pas associer avec des antidépresseurs (ISRS, IMAO), des sédatifs, des triptans ou d'autres produits à base de tryptophane/5-HTP sans un avis médical strict (risque de syndrome sérotoninergique). Grossesse, allaitement, insuffisance rénale ou hépatique sévère.",
+                    scientificRelevance: 2
+                },
+                {
+                    name: "Berberine",
+                    ean: "3760191461741",
+                    category: "Santé Métabolique",
+                    indication: "Aide au contrôle de la glycémie, soutien du métabolisme des lipides (cholestérol, triglycérides) et de la santé cardiovasculaire.",
+                    compositionDetails: "Pour 1 gélule : Extrait de Berberis aristata (500 mg, standardisé à 97% de berbérine).",
+                    mechanism: "La Berbérine agit sur le métabolisme du glucose et des lipides par des voies cellulaires clés. Elle active l'AMPK, une enzyme clé du métabolisme énergétique. Cela conduit à une augmentation de l'absorption du glucose par les cellules, une réduction de la production de glucose par le foie, et une amélioration de la sensibilité à l'insuline. Elle peut aussi moduler le métabolisme des lipides et influencer le microbiote intestinal.",
+                    sideEffects: "Troubles gastro-intestinaux (constipation, diarrhée, flatulences, crampes abdominales) sont les plus fréquents et dépendent de la dose.",
+                    contraindications: "Grossesse, allaitement. Interactions médicamenteuses possibles (cyclosporine, metformine, hypocholestérolémiants, anticoagulants, antihypertenseurs). Avis médical requis. Insuffisance hépatique.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "Levure de riz rouge",
+                    ean: "3760191463820",
+                    category: "Santé Métabolique",
+                    indication: "Maintien d'une cholestérolémie normale.",
+                    compositionDetails: "Pour 2 gélules : Monacoline K (3 mg, issue de levure de riz rouge).",
+                    mechanism: "La Levure de riz rouge agit sur le cholestérol par un mécanisme similaire aux statines. La Monacoline K, dont la structure est identique à la lovastatine, inhibe l'HMG-CoA réductase, une enzyme clé dans la synthèse du cholestérol dans le foie, réduisant ainsi la production endogène de cholestérol.",
+                    sideEffects: "Douleurs musculaires (myalgies), troubles digestifs, élévation des enzymes hépatiques. Ces effets sont similaires à ceux des statines.",
+                    contraindications: "Maladie hépatique active, grossesse, allaitement, forte consommation de pamplemousse. Ne pas associer avec un traitement par statines ou d'autres produits contenant de la levure de riz rouge. Avis médical indispensable avant utilisation.",
+                    scientificRelevance: 3
+                },
+                {
+                    name: "IxeaSOD",
+                    ean: "3760191461093",
+                    category: "Antioxydants",
+                    indication: "Protection cellulaire contre le stress oxydatif, soutien anti-âge, aide à la récupération musculaire.",
+                    compositionDetails: "Pour 1 gélule : Extrait de melon riche en Superoxyde Dismutase (SOD) GliSODin® (250 mg).",
+                    mechanism: "IxeaSOD offre une protection antioxydante avancée en fournissant une enzyme clé. La SOD est l'une des enzymes antioxydantes les plus puissantes du corps. Elle catalyse la dismutation du superoxyde, réduisant le stress oxydatif. La formule GliSODin® protège la SOD de la dégradation digestive, assurant son absorption sous forme active pour augmenter les niveaux de SOD endogène.",
+                    sideEffects: "Généralement très bien toléré.",
+                    contraindications: "Allergie ou intolérance au gluten (si la gliadine est utilisée comme protection). Maladie cœliaque (si la gliadine est utilisée). Hypersensibilité à l'un des composants.",
+                    scientificRelevance: 2
+                }
+            ];
+
+            // Mapping des catégories aux icônes Unicode
+            const categoryIcons = {
+                "Articulations & Peau": "🦴",
+                "Équilibre Féminin": "🌸",
+                "Santé Masculine": "💪",
+                "Digestion & Détox": "🍃",
+                "Santé Métabolique": "⚖️",
+                "Antioxydants": "🛡️",
+                "Stress & Sommeil": "🌙",
+                "Cognition & Mémoire": "🧠",
+                "Vitamines & Minéraux": "💊",
+                "Immunité": "🛡️",
+                "Énergie & Vitalité": "⚡",
+                "Santé Cardiovasculaire": "❤️",
+                "Équilibre Acido-Basique": "⚖️"
+            };
+
+            const productGrid = document.getElementById('product-grid');
+            const searchInput = document.getElementById('search-input');
+            const categoryFilter = document.getElementById('category-filter');
+            const noResults = document.getElementById('no-results');
+
+            const modalOverlay = document.getElementById('product-modal-overlay');
+            const modalCloseButton = document.getElementById('modal-close-button');
+            const modalProductName = document.getElementById('modal-product-name');
+            const modalProductEAN = document.getElementById('modal-product-ean');
+            const modalProductIndication = document.getElementById('modal-product-indication');
+            const modalProductComposition = document.getElementById('modal-product-composition');
+            const modalProductMechanism = document.getElementById('modal-product-mechanism');
+            const modalScientificRelevance = document.getElementById('modal-scientific-relevance');
+            const scientificTooltip = document.getElementById('scientific-tooltip');
+
+            // Variable pour stocker le produit actuellement affiché dans la modale
+            let currentProductInModal = null;
+
+            // Helper function to get tooltip text for scientific relevance
+            function getScientificRelevanceTooltip(relevance) {
+                switch (relevance) {
+                    case 1: return "Peu documenté : L'allégation est principalement basée sur l'usage traditionnel ou des études très préliminaires.";
+                    case 2: return "Bien documenté : L'allégation est soutenue par quelques études humaines ou un consensus émergent, avec des mécanismes plausibles.";
+                    case 3: return "Très bien documenté : L'allégation est étayée par plusieurs études cliniques robustes et un consensus scientifique fort, avec des mécanismes bien établis.";
+                    default: return "Évaluation de la pertinence scientifique.";
+                }
+            }
+
+            function populateCategories() {
+                const categories = [...new Set(productData.map(p => p.category))].sort();
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    // Ajout de l'icône Unicode devant le texte de la catégorie
+                    option.textContent = (categoryIcons[category] ? categoryIcons[category] + ' ' : '') + category;
+                    categoryFilter.appendChild(option);
+                });
+            }
+
+            function openProductModal(product) {
+                currentProductInModal = product; // Stocker le produit actuel
+
+                modalProductName.textContent = product.name;
+                modalProductEAN.textContent = product.ean;
+                modalProductIndication.textContent = product.indication;
+                modalProductComposition.textContent = product.compositionDetails;
+                modalProductMechanism.innerHTML = product.mechanism; // Utiliser innerHTML pour le paragraphe avec balises
+
+                // Display scientific relevance stars
+                let stars = '';
+                for (let i = 0; i < product.scientificRelevance; i++) {
+                    stars += '★';
+                }
+                for (let i = product.scientificRelevance; i < 3; i++) {
+                    stars += '☆'; // Empty star for remaining
+                }
+                modalScientificRelevance.textContent = stars;
+                // Définir l'attribut title pour le tooltip natif du navigateur
+                modalScientificRelevance.title = getScientificRelevanceTooltip(product.scientificRelevance); 
+
+                // Assurez-vous que ces éléments sont bien définis avant d'y accéder
+                document.getElementById('modal-product-side-effects').textContent = product.sideEffects;
+                document.getElementById('modal-product-contraindications').textContent = product.contraindications;
+
+                modalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeProductModal() {
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+                // Masquer le tooltip personnalisé si visible
+                scientificTooltip.classList.remove('active');
+                scientificTooltip.classList.add('hidden');
+                currentProductInModal = null; // Réinitialiser le produit stocké
+            }
+
+            function renderProductCards(data) {
+                productGrid.innerHTML = '';
+                if (data.length === 0) {
+                    noResults.classList.remove('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                }
+
+                const fragment = document.createDocumentFragment();
+                data.forEach(product => {
+                    const card = document.createElement('div');
+                    card.classList.add('product-card');
+
+                    const icon = categoryIcons[product.category] || '✨';
+
+                    card.innerHTML = `
+                        <div class="category-icon">${icon}</div>
+                        <h3 class="product-card-title">${product.name}</h3>
+                        <p class="product-card-ean">EAN: ${product.ean}</p>
+                        <p class="product-card-indication">${product.indication}</p>
+                    `;
+                    card.addEventListener('click', () => openProductModal(product));
+                    fragment.appendChild(card);
+                });
+                productGrid.appendChild(fragment);
+            }
+
+            function filterData() {
+                const searchTerm = searchInput.value.toLowerCase().trim();
+                const selectedCategory = categoryFilter.value;
+
+                const filteredData = productData.filter(product => {
+                    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+
+                    if (!matchesCategory) return false;
+
+                    if (searchTerm === '') return true;
+
+                    // Search in mechanism as a single string
+                    const mechanismText = product.mechanism.toLowerCase();
+
+                    return (
+                        product.name.toLowerCase().includes(searchTerm) ||
+                        product.ean.toLowerCase().includes(searchTerm) ||
+                        product.indication.toLowerCase().includes(searchTerm) ||
+                        mechanismText.includes(searchTerm) ||
+                        product.category.toLowerCase().includes(searchTerm) ||
+                        product.sideEffects.toLowerCase().includes(searchTerm) ||
+                        product.contraindications.toLowerCase().includes(searchTerm) ||
+                        product.compositionDetails.toLowerCase().includes(searchTerm)
+                    );
+                });
+
+                renderProductCards(filteredData);
+            }
+
+            // Event listeners for the custom tooltip
+            modalScientificRelevance.addEventListener('mouseenter', function(e) {
+                if (currentProductInModal) { // S'assurer qu'un produit est ouvert
+                    const relevance = currentProductInModal.scientificRelevance; // Accéder directement à la pertinence du produit actuel
+                    const rect = e.target.getBoundingClientRect();
+                    scientificTooltip.textContent = getScientificRelevanceTooltip(relevance);
+                    
+                    // Positionnement du tooltip
+                    scientificTooltip.style.left = `${rect.left + rect.width / 2 - scientificTooltip.offsetWidth / 2}px`;
+                    scientificTooltip.style.top = `${rect.bottom + window.scrollY + 10}px`;
+                    
+                    scientificTooltip.classList.remove('hidden');
+                    scientificTooltip.classList.add('active');
+                }
+            });
+
+            modalScientificRelevance.addEventListener('mouseleave', function() {
+                scientificTooltip.classList.remove('active');
+                scientificTooltip.classList.add('hidden');
+            });
+
+
+            populateCategories();
+            filterData();
+
+            searchInput.addEventListener('input', filterData);
+            categoryFilter.addEventListener('change', filterData);
+            modalCloseButton.addEventListener('click', closeProductModal);
+            modalOverlay.addEventListener('click', (event) => {
+                if (event.target === modalOverlay) {
+                    closeProductModal();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
